@@ -1,0 +1,60 @@
+generator client {
+  provider      = "prisma-client"
+  output        = "../src/generated/prisma"
+  moduleFormat  = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum AssignmentStatus {
+  ACTIVE
+  INACTIVE
+  PENDING
+  SUSPENDED
+}
+
+model Assignment {
+  id              String              @id @default(uuid())
+  name            String              
+  owners          AssignmentOwner[]
+  status          AssignmentStatus    @default(PENDING)
+  clubs           AssignmentClub[]
+  createdBy       String?            
+  updatedBy       String?            
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  available       Boolean              @default(true)
+  @@index([status])
+  @@index([available])
+  @@map("assignments")
+}
+
+model AssignmentClub {
+  id              String        @id @default(uuid())
+  assignmentId    String       
+  clubId          String       
+  assignment      Assignment    @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  available       Boolean             @default(true)
+  @@unique([assignmentId, clubId])
+  @@index([clubId])
+  @@index([available])
+  @@map("assignment_clubs")
+}
+
+model AssignmentOwner {
+  id              String        @id @default(uuid())
+  assignmentId    String       
+  userId          String       
+  assignment      Assignment    @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  available       Boolean             @default(true)
+  @@unique([assignmentId, userId])
+  @@index([userId])
+  @@index([available])
+  @@map("assignment_owners")
+}
