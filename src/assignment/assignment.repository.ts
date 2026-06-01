@@ -78,4 +78,23 @@ export class AssignmentRepository {
       select: { id: true },
     });
   }
+
+  findManyWithOwners(userId: string) {
+    return this.prisma.assignment.findMany({
+      where: {
+        owners: {
+          some: {
+            userId: userId,
+          },
+        },
+        available: true,
+      },
+      select: {
+        id: true,
+        name: true,
+        owners: true,
+        clubs: true,
+      },
+    });
+  }
 }

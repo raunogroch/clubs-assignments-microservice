@@ -25,7 +25,7 @@ export class AssignmentService {
 
     const uniqueClubIds = Array.from(new Set(clubs));
 
-    return this.assignmentRepository.create({
+    const assignment = await this.assignmentRepository.create({
       ...data,
       owners: {
         create: uniqueOwnerIds.map((userId) => ({ userId })),
@@ -34,16 +34,36 @@ export class AssignmentService {
         create: uniqueClubIds.map((clubId) => ({ clubId })),
       },
     });
+
+    if (uniqueOwnerIds.length > 0) {
+      const eventRequests = uniqueOwnerIds.map((userId) =>
+        firstValueFrom(
+          this.userClient.emit('users.adding.assignment', {
+            userId: userId,
+            assignmentId: assignment.id,
+          }),
+        ),
+      );
+
+      await Promise.all(eventRequests);
+    }
+
+    return assignment;
   }
 
   async findAll(paginationDto: PaginationDto) {
     try {
       const { page = 1, limit = 10 } = paginationDto;
-      const total = await this.assignmentRepository.countAvailable();
+
+      const [total, data] = await Promise.all([
+        this.assignmentRepository.countAvailable(),
+        this.assignmentRepository.findAll(page, limit),
+      ]);
+
       const lastPage = Math.ceil(total / limit);
 
       return {
-        data: await this.assignmentRepository.findAll(page, limit),
+        data,
         meta: {
           total,
           page,
@@ -192,5 +212,9 @@ export class AssignmentService {
     } catch (err: any) {
       throw new RpcException(err);
     }
+  }
+
+  async findAssignmentByUser(id: string) {
+    return await this.assignmentRepository.findManyWithOwners(id);
   }
 }

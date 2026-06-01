@@ -42,4 +42,9 @@ export class AssignmentController {
   validateAssignment(@Payload() id: string) {
     return this.assignmentService.validateAssignment(id);
   }
+
+  @MessagePattern('assignment.findByUser')
+  findAssignmentByUser(@Payload() id: string) {
+    return this.assignmentService.findAssignmentByUser(id);
+  }
 }
