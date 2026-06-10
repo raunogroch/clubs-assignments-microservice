@@ -97,4 +97,30 @@ export class AssignmentRepository {
       },
     });
   }
+
+  async addClubsToAssignment(
+    assignmentId: string,
+    clubIds: string[],
+  ) {
+    const results = await Promise.all(
+      clubIds.map((clubId) =>
+        this.prisma.assignmentClub.upsert({
+          where: {
+            assignmentId_clubId: {
+              assignmentId,
+              clubId,
+            },
+          },
+          update: {
+            available: true,
+          },
+          create: {
+            assignmentId,
+            clubId,
+          },
+        }),
+      ),
+    );
+    return results;
+  }
 }

@@ -217,4 +217,37 @@ export class AssignmentService {
   async findAssignmentByUser(id: string) {
     return await this.assignmentRepository.findManyWithOwners(id);
   }
+
+  async addClubsToAssignment(assignmentId: string, clubs: string[]) {
+    try {
+      if (!clubs || clubs.length === 0) {
+        throw new RpcException({
+          status: HttpStatus.BAD_REQUEST,
+          message: 'Clubs array cannot be empty',
+        });
+      }
+
+      const assignment = await this.findOne(assignmentId);
+      if (!assignment) {
+        throw new RpcException({
+          status: HttpStatus.NOT_FOUND,
+          message: 'Assignment not found',
+        });
+      }
+
+      const uniqueClubIds = Array.from(new Set(clubs));
+      const clubAssignments =
+        await this.assignmentRepository.addClubsToAssignment(
+          assignmentId,
+          uniqueClubIds,
+        );
+
+      return {
+        message: `${clubAssignments.length} club(s) added to assignment successfully`,
+        data: clubAssignments,
+      };
+    } catch (err: any) {
+      throw new RpcException(err);
+    }
+  }
 }

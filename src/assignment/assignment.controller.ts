@@ -4,7 +4,7 @@ import { AssignmentService } from './assignment.service';
 import { CreateAssignmentDto } from './dto/create-assignment.dto';
 import { UpdateAssignmentDto } from './dto/update-assignment.dto';
 import { PaginationDto } from '../common';
-import { OwnersAssignmentDto } from './dto';
+import { ClubsAssignmentDto } from './dto';
 
 @Controller()
 export class AssignmentController {
@@ -46,5 +46,13 @@ export class AssignmentController {
   @MessagePattern('assignment.findByUser')
   findAssignmentByUser(@Payload() id: string) {
     return this.assignmentService.findAssignmentByUser(id);
+  }
+
+  @MessagePattern('assignment.addClubs')
+  addClubsToAssignment(@Payload() clubsAssignmentDto: ClubsAssignmentDto) {
+    return this.assignmentService.addClubsToAssignment(
+      clubsAssignmentDto.id,
+      clubsAssignmentDto.clubs,
+    );
   }
 }
