@@ -7,6 +7,7 @@ import { PaginationDto } from '../common';
 import { NATS_SERVICE } from '../config';
 import { AssignmentRepository } from './assignment.repository';
 import { calculateAdminsChanges } from './utils';
+import { Roles } from './enum';
 
 @Injectable()
 export class AssignmentService {
@@ -39,8 +40,9 @@ export class AssignmentService {
       const eventRequests = uniqueOwnerIds.map((userId) =>
         firstValueFrom(
           this.userClient.emit('users.adding.assignment', {
-            userId: userId,
+            userId,
             assignmentId: assignment.id,
+            role: Roles.ADMIN,
           }),
         ),
       );
@@ -129,6 +131,7 @@ export class AssignmentService {
               this.userClient.emit('users.adding.assignment', {
                 userId: adminId,
                 assignmentId: id,
+                role: Roles.ADMIN,
               }),
             ),
           ),
@@ -137,6 +140,7 @@ export class AssignmentService {
               this.userClient.emit('users.remove.assignment', {
                 userId: adminId,
                 assignmentId: id,
+                role: Roles.ADMIN,
               }),
             ),
           ),
