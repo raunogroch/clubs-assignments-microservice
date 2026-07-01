@@ -1,19 +1,18 @@
-import { HttpStatus, Inject, Injectable } from '@nestjs/common';
-import { ClientProxy, RpcException } from '@nestjs/microservices';
-import { firstValueFrom } from 'rxjs';
+import { HttpStatus, Injectable } from '@nestjs/common';
+import { RpcException } from '@nestjs/microservices';
 import { CreateAssignmentDto } from './dto/create-assignment.dto';
 import { UpdateAssignmentDto } from './dto/update-assignment.dto';
 import { PaginationDto } from '../common';
-import { NATS_SERVICE } from '../config';
 import { AssignmentRepository } from './assignment.repository';
 import { calculateAdminsChanges } from './utils';
 import { Roles } from './enum';
+import { NatsClientService } from '../transports/nats-client.service';
 
 @Injectable()
 export class AssignmentService {
   constructor(
     private readonly assignmentRepository: AssignmentRepository,
-    @Inject(NATS_SERVICE) private readonly userClient: ClientProxy,
+    private readonly natsClientService: NatsClientService,
   ) {}
 
   async create(createAssignmentDto: CreateAssignmentDto) {
@@ -38,13 +37,11 @@ export class AssignmentService {
 
     if (uniqueOwnerIds.length > 0) {
       const eventRequests = uniqueOwnerIds.map((userId) =>
-        firstValueFrom(
-          this.userClient.emit('users.adding.assignment', {
-            userId,
-            assignmentId: assignment.id,
-            role: Roles.ADMIN,
-          }),
-        ),
+        this.natsClientService.emit('users.adding.assignment', {
+          userId,
+          assignmentId: assignment.id,
+          role: Roles.ADMIN,
+        }),
       );
 
       await Promise.all(eventRequests);
@@ -127,22 +124,18 @@ export class AssignmentService {
 
         const eventRequests = [
           ...addedAdmins.map((adminId) =>
-            firstValueFrom(
-              this.userClient.emit('users.adding.assignment', {
-                userId: adminId,
-                assignmentId: id,
-                role: Roles.ADMIN,
-              }),
-            ),
+            this.natsClientService.emit('users.adding.assignment', {
+              userId: adminId,
+              assignmentId: id,
+              role: Roles.ADMIN,
+            }),
           ),
           ...removedAdmins.map((adminId) =>
-            firstValueFrom(
-              this.userClient.emit('users.remove.assignment', {
-                userId: adminId,
-                assignmentId: id,
-                role: Roles.ADMIN,
-              }),
-            ),
+            this.natsClientService.emit('users.remove.assignment', {
+              userId: adminId,
+              assignmentId: id,
+              role: Roles.ADMIN,
+            }),
           ),
         ];
 
@@ -188,17 +181,17 @@ export class AssignmentService {
   ): Promise<string[]> {
     if (!users.length) return [];
 
-    const validatedAdmins = await firstValueFrom<string[]>(
-      this.userClient.send<string[]>('users.admin.validate', {
+    const validatedAdmins = await this.natsClientService
+      .send<string[]>('users.admin.validate', {
         ids: users,
         role,
-      }),
-    ).catch((err) => {
-      throw new RpcException({
-        status: HttpStatus.BAD_REQUEST,
-        message: err.message,
+      })
+      .catch((err) => {
+        throw new RpcException({
+          status: HttpStatus.BAD_REQUEST,
+          message: err.message,
+        });
       });
-    });
 
     return validatedAdmins;
   }
